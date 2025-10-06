@@ -12,6 +12,8 @@ class SequenceHandler {
         this.fitToFrame = false;
         this.cropOffsetX = 0;
         this.cropOffsetY = 0;
+        this.originalFrameWidth = 0;  // Store original dimensions
+        this.originalFrameHeight = 0; // Store original dimensions
         
         this.initializeElements();
         this.initializeEventListeners();
@@ -265,6 +267,8 @@ class SequenceHandler {
                 if (i === 0) {
                     this.frameWidth = img.width;
                     this.frameHeight = img.height;
+                    this.originalFrameWidth = img.width;   // Store original
+                    this.originalFrameHeight = img.height; // Store original
                 } else if (img.width !== this.frameWidth || img.height !== this.frameHeight) {
                     throw new Error(`Frame ${i + 1} dimensions (${img.width}x${img.height}) don't match first frame (${this.frameWidth}x${this.frameHeight})`);
                 }
@@ -378,11 +382,13 @@ class SequenceHandler {
         if (!frame) return;
 
         const ctx = this.previewCanvas.getContext('2d');
+        // Always use original image dimensions for preview
         this.previewCanvas.width = frame.image.width;
         this.previewCanvas.height = frame.image.height;
 
         ctx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
         ctx.imageSmoothingEnabled = false;
+        // Always draw the original, unprocessed image
         ctx.drawImage(frame.image, 0, 0);
 
         // Draw crop overlay if custom resolution is enabled
@@ -398,8 +404,11 @@ class SequenceHandler {
      * Draw crop region overlay on preview
      */
     drawCropOverlay(ctx) {
-        const targetWidth = parseInt(this.outputWidth.value) || this.frameWidth;
-        const targetHeight = parseInt(this.outputHeight.value) || this.frameHeight;
+        // Use original dimensions for overlay calculation
+        const originalWidth = this.originalFrameWidth;
+        const originalHeight = this.originalFrameHeight;
+        const targetWidth = parseInt(this.outputWidth.value) || originalWidth;
+        const targetHeight = parseInt(this.outputHeight.value) || originalHeight;
         const mode = this.cropMode.value;
 
         // Calculate crop region based on mode
@@ -409,20 +418,20 @@ class SequenceHandler {
             case 'crop-top':
                 cropX = this.cropOffsetX;
                 cropY = this.cropOffsetY;
-                cropW = Math.min(targetWidth, this.frameWidth);
-                cropH = Math.min(targetHeight, this.frameHeight);
+                cropW = Math.min(targetWidth, originalWidth);
+                cropH = Math.min(targetHeight, originalHeight);
                 break;
             case 'crop-bottom':
-                cropW = Math.min(targetWidth, this.frameWidth);
-                cropH = Math.min(targetHeight, this.frameHeight);
+                cropW = Math.min(targetWidth, originalWidth);
+                cropH = Math.min(targetHeight, originalHeight);
                 cropX = this.cropOffsetX;
-                cropY = Math.max(0, this.frameHeight - cropH) + this.cropOffsetY;
+                cropY = Math.max(0, originalHeight - cropH) + this.cropOffsetY;
                 break;
             case 'crop-center':
-                cropW = Math.min(targetWidth, this.frameWidth);
-                cropH = Math.min(targetHeight, this.frameHeight);
-                cropX = Math.floor((this.frameWidth - cropW) / 2) + this.cropOffsetX;
-                cropY = Math.floor((this.frameHeight - cropH) / 2) + this.cropOffsetY;
+                cropW = Math.min(targetWidth, originalWidth);
+                cropH = Math.min(targetHeight, originalHeight);
+                cropX = Math.floor((originalWidth - cropW) / 2) + this.cropOffsetX;
+                cropY = Math.floor((originalHeight - cropH) / 2) + this.cropOffsetY;
                 break;
             case 'stretch':
             case 'fit':
@@ -431,8 +440,8 @@ class SequenceHandler {
         }
 
         // Clamp crop region to image bounds
-        cropX = Math.max(0, Math.min(cropX, this.frameWidth - cropW));
-        cropY = Math.max(0, Math.min(cropY, this.frameHeight - cropH));
+        cropX = Math.max(0, Math.min(cropX, originalWidth - cropW));
+        cropY = Math.max(0, Math.min(cropY, originalHeight - cropH));
 
         // Draw semi-transparent overlay on areas that will NOT be exported
         // The crop region remains fully visible (100% opacity)
@@ -441,12 +450,12 @@ class SequenceHandler {
         
         // Top area (above crop)
         if (cropY > 0) {
-            ctx.fillRect(0, 0, this.frameWidth, cropY);
+            ctx.fillRect(0, 0, originalWidth, cropY);
         }
         
         // Bottom area (below crop)
-        if (cropY + cropH < this.frameHeight) {
-            ctx.fillRect(0, cropY + cropH, this.frameWidth, this.frameHeight - (cropY + cropH));
+        if (cropY + cropH < originalHeight) {
+            ctx.fillRect(0, cropY + cropH, originalWidth, originalHeight - (cropY + cropH));
         }
         
         // Left area (beside crop)
@@ -455,8 +464,8 @@ class SequenceHandler {
         }
         
         // Right area (beside crop)
-        if (cropX + cropW < this.frameWidth) {
-            ctx.fillRect(cropX + cropW, cropY, this.frameWidth - (cropX + cropW), cropH);
+        if (cropX + cropW < originalWidth) {
+            ctx.fillRect(cropX + cropW, cropY, originalWidth - (cropX + cropW), cropH);
         }
     }
 
@@ -478,8 +487,9 @@ class SequenceHandler {
         const containerWidth = this.previewContainer.clientWidth - 48; // padding
         const containerHeight = this.previewContainer.clientHeight - 48;
 
-        const scaleX = containerWidth / this.frameWidth;
-        const scaleY = containerHeight / this.frameHeight;
+        // Always fit based on original dimensions
+        const scaleX = containerWidth / this.originalFrameWidth;
+        const scaleY = containerHeight / this.originalFrameHeight;
         this.zoomLevel = Math.min(scaleX, scaleY, 32); // Cap at 32x
         this.fitToFrame = true;
         this.applyZoom();
@@ -491,8 +501,9 @@ class SequenceHandler {
     applyZoom() {
         if (this.frames.length === 0) return;
 
-        const width = this.frameWidth * this.zoomLevel;
-        const height = this.frameHeight * this.zoomLevel;
+        // Always zoom based on original dimensions
+        const width = this.originalFrameWidth * this.zoomLevel;
+        const height = this.originalFrameHeight * this.zoomLevel;
 
         this.previewCanvas.style.width = `${width}px`;
         this.previewCanvas.style.height = `${height}px`;
