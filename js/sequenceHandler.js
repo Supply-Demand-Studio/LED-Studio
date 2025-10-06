@@ -10,6 +10,8 @@ class SequenceHandler {
         this.frames = [];
         this.zoomLevel = 1;
         this.fitToFrame = false;
+        this.cropOffsetX = 0;
+        this.cropOffsetY = 0;
         
         this.initializeElements();
         this.initializeEventListeners();
@@ -38,6 +40,10 @@ class SequenceHandler {
         this.outputWidth = document.getElementById('sequenceOutputWidth');
         this.outputHeight = document.getElementById('sequenceOutputHeight');
         this.cropMode = document.getElementById('sequenceCropMode');
+        this.cropOffsetXSlider = document.getElementById('sequenceCropOffsetX');
+        this.cropOffsetXValue = document.getElementById('sequenceCropOffsetXValue');
+        this.cropOffsetYSlider = document.getElementById('sequenceCropOffsetY');
+        this.cropOffsetYValue = document.getElementById('sequenceCropOffsetYValue');
         
         // Control buttons
         this.playBtn = document.getElementById('sequencePlayBtn');
@@ -115,11 +121,22 @@ class SequenceHandler {
             this.outputWidth.disabled = !enabled;
             this.outputHeight.disabled = !enabled;
             this.cropMode.disabled = !enabled;
+            this.cropOffsetXSlider.disabled = !enabled;
+            this.cropOffsetYSlider.disabled = !enabled;
             
             if (enabled && this.frames.length > 0) {
                 // Set default to source dimensions
                 this.outputWidth.value = this.frameWidth;
                 this.outputHeight.value = this.frameHeight;
+                // Reset crop offsets
+                this.cropOffsetX = 0;
+                this.cropOffsetY = 0;
+                this.cropOffsetXSlider.value = 0;
+                this.cropOffsetYSlider.value = 0;
+                this.cropOffsetXValue.textContent = '0';
+                this.cropOffsetYValue.textContent = '0';
+                // Update preview to show crop overlay
+                this.updatePreview(this.frameManager.getCurrentFrame());
             }
         });
 
@@ -137,6 +154,43 @@ class SequenceHandler {
         });
 
         this.cropMode.addEventListener('change', () => {
+            if (this.useCustomResolution.checked && this.frames.length > 0) {
+                // Reset offsets when changing mode
+                this.cropOffsetX = 0;
+                this.cropOffsetY = 0;
+                this.cropOffsetXSlider.value = 0;
+                this.cropOffsetYSlider.value = 0;
+                this.cropOffsetXValue.textContent = '0';
+                this.cropOffsetYValue.textContent = '0';
+                this.reprocessFrames();
+            }
+        });
+
+        // Crop offset sliders - update preview in real-time
+        this.cropOffsetXSlider.addEventListener('input', (e) => {
+            this.cropOffsetX = parseInt(e.target.value);
+            this.cropOffsetXValue.textContent = this.cropOffsetX;
+            if (this.frames.length > 0) {
+                this.updatePreview(this.frameManager.getCurrentFrame());
+            }
+        });
+
+        this.cropOffsetYSlider.addEventListener('input', (e) => {
+            this.cropOffsetY = parseInt(e.target.value);
+            this.cropOffsetYValue.textContent = this.cropOffsetY;
+            if (this.frames.length > 0) {
+                this.updatePreview(this.frameManager.getCurrentFrame());
+            }
+        });
+
+        // When offset slider is released, reprocess frames for export
+        this.cropOffsetXSlider.addEventListener('change', () => {
+            if (this.useCustomResolution.checked && this.frames.length > 0) {
+                this.reprocessFrames();
+            }
+        });
+
+        this.cropOffsetYSlider.addEventListener('change', () => {
             if (this.useCustomResolution.checked && this.frames.length > 0) {
                 this.reprocessFrames();
             }
@@ -338,8 +392,95 @@ class SequenceHandler {
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(frame.image, 0, 0);
 
+        // Draw crop overlay if custom resolution is enabled
+        if (this.useCustomResolution.checked) {
+            this.drawCropOverlay(ctx);
+        }
+
         // Apply current zoom
         this.applyZoom();
+    }
+
+    /**
+     * Draw crop region overlay on preview
+     */
+    drawCropOverlay(ctx) {
+        const targetWidth = parseInt(this.outputWidth.value) || this.frameWidth;
+        const targetHeight = parseInt(this.outputHeight.value) || this.frameHeight;
+        const mode = this.cropMode.value;
+
+        // Calculate crop region based on mode
+        let cropX = 0, cropY = 0, cropW = targetWidth, cropH = targetHeight;
+
+        switch (mode) {
+            case 'crop-top':
+                cropX = this.cropOffsetX;
+                cropY = this.cropOffsetY;
+                cropW = Math.min(targetWidth, this.frameWidth);
+                cropH = Math.min(targetHeight, this.frameHeight);
+                break;
+            case 'crop-bottom':
+                cropW = Math.min(targetWidth, this.frameWidth);
+                cropH = Math.min(targetHeight, this.frameHeight);
+                cropX = this.cropOffsetX;
+                cropY = Math.max(0, this.frameHeight - cropH) + this.cropOffsetY;
+                break;
+            case 'crop-center':
+                cropW = Math.min(targetWidth, this.frameWidth);
+                cropH = Math.min(targetHeight, this.frameHeight);
+                cropX = Math.floor((this.frameWidth - cropW) / 2) + this.cropOffsetX;
+                cropY = Math.floor((this.frameHeight - cropH) / 2) + this.cropOffsetY;
+                break;
+            case 'stretch':
+            case 'fit':
+                // No crop overlay for these modes
+                return;
+        }
+
+        // Clamp crop region to image bounds
+        cropX = Math.max(0, Math.min(cropX, this.frameWidth - cropW));
+        cropY = Math.max(0, Math.min(cropY, this.frameHeight - cropH));
+
+        // Dim the area outside crop region
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        
+        // Top
+        if (cropY > 0) {
+            ctx.fillRect(0, 0, this.frameWidth, cropY);
+        }
+        // Bottom
+        if (cropY + cropH < this.frameHeight) {
+            ctx.fillRect(0, cropY + cropH, this.frameWidth, this.frameHeight - (cropY + cropH));
+        }
+        // Left
+        if (cropX > 0) {
+            ctx.fillRect(0, cropY, cropX, cropH);
+        }
+        // Right
+        if (cropX + cropW < this.frameWidth) {
+            ctx.fillRect(cropX + cropW, cropY, this.frameWidth - (cropX + cropW), cropH);
+        }
+
+        // Draw red crop rectangle
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cropX, cropY, cropW, cropH);
+
+        // Draw corner markers
+        const markerSize = 10;
+        ctx.fillStyle = '#ff0000';
+        // Top-left
+        ctx.fillRect(cropX - 1, cropY - 1, markerSize, 2);
+        ctx.fillRect(cropX - 1, cropY - 1, 2, markerSize);
+        // Top-right
+        ctx.fillRect(cropX + cropW - markerSize + 1, cropY - 1, markerSize, 2);
+        ctx.fillRect(cropX + cropW - 1, cropY - 1, 2, markerSize);
+        // Bottom-left
+        ctx.fillRect(cropX - 1, cropY + cropH - 1, markerSize, 2);
+        ctx.fillRect(cropX - 1, cropY + cropH - markerSize + 1, 2, markerSize);
+        // Bottom-right
+        ctx.fillRect(cropX + cropW - markerSize + 1, cropY + cropH - 1, markerSize, 2);
+        ctx.fillRect(cropX + cropW - 1, cropY + cropH - markerSize + 1, 2, markerSize);
     }
 
     /**
@@ -499,14 +640,16 @@ class SequenceHandler {
             const targetHeight = parseInt(this.outputHeight.value);
             const mode = this.cropMode.value;
 
-            // Reprocess all frames
+            // Reprocess all frames with crop offsets
             for (let i = 0; i < this.frames.length; i++) {
                 const frame = this.frames[i];
                 frame.pixelData = this.imageProcessor.processImageWithResize(
                     frame.image,
                     targetWidth,
                     targetHeight,
-                    mode
+                    mode,
+                    this.cropOffsetX,
+                    this.cropOffsetY
                 );
             }
 

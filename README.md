@@ -294,22 +294,38 @@ A 30-frame animation at 16×16: **30 KB** total
 ### Problem: Export file is huge
 **Solution**: Reduce frame count, resolution, or use lower FPS
 
+## References
+
+This tool is designed for use with **Beckhoff EL2574 LED controllers** and follows the pixel format conventions from the official Beckhoff documentation:
+
+**📖 Beckhoff EL2574 Documentation:** [https://infosys.beckhoff.com/english.php?content=../content/1033/el2574/index.html](https://infosys.beckhoff.com/english.php?content=../content/1033/el2574/index.html)
+
+The DWORD pixel format (0x00BBGGRR) and array structure are based on Beckhoff's official examples for LED strip control.
+
 ## License
 
-Part of the MNEX Interactive Installation System project.
-© 2025 Supply & Demand Studio
+MIT License
+
+Copyright (c) 2025 Supply & Demand Studio
+
+Part of the SAND_Common ecosystem and MNEX Interactive Installation System project.
 
 ## Version History
 
-- **v2.0** (2025-10-06): Added animation sequence support with Material Design 3 UI
-- **v1.0** (2023): Initial single-image converter
+- **v1.0.0** (2025-10-06): 
+  - Complete rewrite with Material Design 3 UI
+  - Added animation sequence support
+  - Custom resolution and crop modes
+  - Zoom controls for tiny images
+  - After Effects workflow support
+- **v0.1.0** (2023): Initial single-image converter
 
 ## Related Documentation
 
-- [MNEX Project README](../README.md)
-- [SAND_Common Library](../SAND_Common/README.md)
-- [LED Control Documentation](../Documentation/)
+- [SAND_Common Library](https://github.com/Supply-Demand-Studio/BECKHOFF_PLC_COMMON)
+- [Beckhoff EL2574 Terminal Documentation](https://infosys.beckhoff.com/english.php?content=../content/1033/el2574/index.html)
+- [TwinCAT 3 PLC Programming](https://www.beckhoff.com/en-en/products/automation/twincat/)
 
 ---
 
-*For questions or issues, please create an issue in the main BECKHOFF_PLC_MNEX repository.*
+**Created by Supply & Demand Studio** | [GitHub](https://github.com/Supply-Demand-Studio/LED-Studio)

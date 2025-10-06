@@ -242,6 +242,16 @@
                             <option value="fit">Fit (maintain aspect)</option>
                         </select>
                     </div>
+
+                    <div class="slider-group">
+                        <label for="sequenceCropOffsetX">Crop X Offset: <span id="sequenceCropOffsetXValue">0</span>px</label>
+                        <input type="range" id="sequenceCropOffsetX" class="slider" min="-500" max="500" value="0" step="1" disabled>
+                    </div>
+
+                    <div class="slider-group">
+                        <label for="sequenceCropOffsetY">Crop Y Offset: <span id="sequenceCropOffsetYValue">0</span>px</label>
+                        <input type="range" id="sequenceCropOffsetY" class="slider" min="-500" max="500" value="0" step="1" disabled>
+                    </div>
                 </div>
 
                 <div class="export-options">
@@ -257,6 +267,14 @@
             </section>
         </div>
     </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <p>Designed for <a href="https://infosys.beckhoff.com/english.php?content=../content/1033/el2574/index.html" target="_blank">Beckhoff EL2574</a> LED controllers</p>
+            <p>Part of <a href="https://github.com/Supply-Demand-Studio/BECKHOFF_PLC_COMMON" target="_blank">SAND_Common</a> • MIT License • © 2025 Supply & Demand Studio</p>
+        </div>
+    </footer>
 
     <!-- Hidden canvas for processing -->
     <canvas id="processingCanvas" style="display: none;"></canvas>

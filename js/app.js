@@ -7,8 +7,9 @@
 window.showSnackbar = function(message, type = 'success') {
     const snackbar = document.getElementById('snackbar');
     const icon = snackbar.querySelector('.material-icons');
-    const spans = snackbar.querySelectorAll('span');
-    const text = spans[1]; // Second span is the text
+    // Get all spans and explicitly target the second one (text span, not icon)
+    const allSpans = Array.from(snackbar.querySelectorAll('span'));
+    const textSpan = allSpans.find(span => !span.classList.contains('material-icons'));
     
     // Set icon and text
     if (type === 'error') {
@@ -18,7 +19,9 @@ window.showSnackbar = function(message, type = 'success') {
         icon.textContent = 'check_circle';
         snackbar.style.backgroundColor = '#2E7D32';
     }
-    text.textContent = message;
+    if (textSpan) {
+        textSpan.textContent = message;
+    }
     
     // Show snackbar
     snackbar.classList.add('show');

@@ -100,9 +100,11 @@ class ImageProcessor {
      * @param {number} targetWidth - Target width
      * @param {number} targetHeight - Target height
      * @param {string} mode - Resize mode: 'crop-top', 'crop-bottom', 'crop-center', 'stretch', 'fit'
+     * @param {number} offsetX - Manual X offset for crop position (default: 0)
+     * @param {number} offsetY - Manual Y offset for crop position (default: 0)
      * @returns {Object} Processed pixel data with target dimensions
      */
-    processImageWithResize(image, targetWidth, targetHeight, mode = 'crop-top') {
+    processImageWithResize(image, targetWidth, targetHeight, mode = 'crop-top', offsetX = 0, offsetY = 0) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
@@ -119,24 +121,24 @@ class ImageProcessor {
                 // Take pixels from top of source (perfect for After Effects 4px height -> 1px strip)
                 sWidth = Math.min(targetWidth, image.width);
                 sHeight = Math.min(targetHeight, image.height);
-                sy = 0;
-                sx = 0;
+                sx = offsetX;
+                sy = offsetY;
                 break;
                 
             case 'crop-bottom':
                 // Take pixels from bottom of source
                 sWidth = Math.min(targetWidth, image.width);
                 sHeight = Math.min(targetHeight, image.height);
-                sy = Math.max(0, image.height - sHeight);
-                sx = 0;
+                sx = offsetX;
+                sy = Math.max(0, image.height - sHeight) + offsetY;
                 break;
                 
             case 'crop-center':
                 // Take pixels from center of source
                 sWidth = Math.min(targetWidth, image.width);
                 sHeight = Math.min(targetHeight, image.height);
-                sy = Math.floor((image.height - sHeight) / 2);
-                sx = Math.floor((image.width - sWidth) / 2);
+                sx = Math.floor((image.width - sWidth) / 2) + offsetX;
+                sy = Math.floor((image.height - sHeight) / 2) + offsetY;
                 break;
                 
             case 'stretch':
@@ -160,6 +162,10 @@ class ImageProcessor {
                 ctx.fillRect(0, 0, targetWidth, targetHeight);
                 break;
         }
+        
+        // Clamp source coordinates to image bounds
+        sx = Math.max(0, Math.min(sx, image.width - sWidth));
+        sy = Math.max(0, Math.min(sy, image.height - sHeight));
         
         // Draw the resized/cropped image
         ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);

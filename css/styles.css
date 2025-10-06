@@ -332,6 +332,37 @@
     color: var(--md-sys-color-on-surface);
 }
 
+/* Footer */
+.app-footer {
+    background-color: var(--md-sys-color-surface);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    margin-top: 48px;
+    padding: 24px 0;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    text-align: center;
+}
+
+.footer-content p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.footer-content a {
+    color: var(--md-sys-color-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer-content a:hover {
+    text-decoration: underline;
+}
+
 /* Snackbar */
 .snackbar {
     position: fixed;
