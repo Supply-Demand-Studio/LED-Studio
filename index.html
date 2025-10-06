@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAND LED Studio - TwinCAT Animation Converter</title>
+    
+    <!-- Material Design 3 -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/material-theme.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- App Bar -->
+    <header class="app-bar">
+        <div class="app-bar-content">
+            <span class="material-icons">palette</span>
+            <h1>SAND LED Studio</h1>
+            <div class="app-bar-actions">
+                <a href="https://github.com/Supply-Demand-Studio/SAND-LED-Studio" target="_blank" class="link-button">
+                    <span class="material-icons">code</span>
+                    GitHub
+                </a>
+                <a href="https://www.piskelapp.com/p/create/sprite" target="_blank" class="link-button">
+                    <span class="material-icons">edit</span>
+                    Piskel Editor
+                </a>
+                <button class="icon-button" id="themeToggle">
+                    <span class="material-icons">dark_mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Tab Navigation -->
+        <nav class="tabs">
+            <button class="tab active" data-tab="single">
+                <span class="material-icons">image</span>
+                Single Image
+            </button>
+            <button class="tab" data-tab="sequence">
+                <span class="material-icons">movie</span>
+                Animation Sequence
+            </button>
+        </nav>
+
+        <!-- Single Image Tab -->
+        <div id="singleImageTab" class="tab-content active">
+            <!-- Upload Section -->
+            <section class="card upload-section">
+                <div class="card-header">
+                    <h2>Upload Image</h2>
+                    <p class="subtitle">Select a single PNG image to convert to TwinCAT pixel array</p>
+                </div>
+                
+                <div class="drop-zone" id="singleDropZone">
+                    <span class="material-icons drop-icon">add_photo_alternate</span>
+                    <p class="drop-text">Drop image here or click to browse</p>
+                    <p class="drop-subtext">PNG format recommended for best results</p>
+                    <input type="file" id="singleFileInput" accept="image/*" hidden>
+                </div>
+            </section>
+
+            <!-- Single Image Preview -->
+            <section class="card preview-section" id="singlePreviewSection" style="display: none;">
+                <div class="card-header">
+                    <h2>Preview</h2>
+                    <div class="preview-info">
+                        <span id="singleDimensionInfo">0 x 0</span>
+                        <span id="singlePixelCount">0 pixels</span>
+                    </div>
+                </div>
+
+                <div class="preview-container">
+                    <canvas id="singlePreviewCanvas"></canvas>
+                </div>
+
+                <div class="config-grid">
+                    <div class="input-group">
+                        <label for="singleImageName">Image Name</label>
+                        <input type="text" id="singleImageName" class="text-field" placeholder="e.g., LOGO_ICON" value="MY_IMAGE">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="singleBrightness">Brightness (%)</label>
+                        <input type="range" id="singleBrightness" class="slider" min="0" max="100" value="100">
+                        <span class="slider-value" id="singleBrightnessValue">100%</span>
+                    </div>
+                </div>
+
+                <div class="export-options">
+                    <button class="button primary" id="singleExportBtn">
+                        <span class="material-icons">code</span>
+                        Export TwinCAT Code
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Animation Sequence Tab -->
+        <div id="sequenceTab" class="tab-content">
+            <!-- Upload Section -->
+            <section class="card upload-section">
+                <div class="card-header">
+                    <h2>Upload PNG Sequence</h2>
+                    <p class="subtitle">Select multiple numbered PNG files or drag a folder</p>
+                </div>
+                
+                <div class="drop-zone" id="sequenceDropZone">
+                    <span class="material-icons drop-icon">cloud_upload</span>
+                    <p class="drop-text">Drop PNG sequence folder here</p>
+                    <p class="drop-subtext">Files will be sorted by name automatically</p>
+                    <input type="file" id="sequenceFileInput" accept="image/png" multiple hidden>
+                </div>
+
+                <div class="file-list" id="sequenceFileList"></div>
+            </section>
+
+            <!-- Preview Section -->
+            <section class="card preview-section" id="sequencePreviewSection" style="display: none;">
+                <div class="card-header">
+                    <h2>Animation Preview</h2>
+                    <div class="preview-info">
+                        <span id="sequenceFrameCount">0 frames</span>
+                        <span id="sequenceDimensionInfo">0 x 0</span>
+                        <span id="sequenceDurationInfo">0.0s</span>
+                    </div>
+                </div>
+
+                <div class="preview-container">
+                    <canvas id="sequencePreviewCanvas"></canvas>
+                </div>
+
+                <div class="preview-controls">
+                    <button class="icon-button" id="sequencePlayBtn">
+                        <span class="material-icons">play_arrow</span>
+                    </button>
+                    <button class="icon-button" id="sequencePrevFrameBtn">
+                        <span class="material-icons">skip_previous</span>
+                    </button>
+                    <button class="icon-button" id="sequenceNextFrameBtn">
+                        <span class="material-icons">skip_next</span>
+                    </button>
+                </div>
+
+                <div class="timeline" id="sequenceTimeline"></div>
+
+                <div class="config-grid">
+                    <div class="input-group">
+                        <label for="sequenceAnimationName">Animation Name</label>
+                        <input type="text" id="sequenceAnimationName" class="text-field" placeholder="e.g., LOADING_SPINNER" value="MY_ANIMATION">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sequenceFps">Frame Rate (FPS)</label>
+                        <input type="range" id="sequenceFps" class="slider" min="1" max="60" value="30">
+                        <span class="slider-value" id="sequenceFpsValue">30 fps</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sequenceBrightness">Brightness (%)</label>
+                        <input type="range" id="sequenceBrightness" class="slider" min="0" max="100" value="100">
+                        <span class="slider-value" id="sequenceBrightnessValue">100%</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sequenceLoopMode">Loop Mode</label>
+                        <select id="sequenceLoopMode" class="select-field">
+                            <option value="loop">Loop</option>
+                            <option value="once">Play Once</option>
+                            <option value="pingpong">Ping Pong</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Output Resolution Settings -->
+                <div class="card-header">
+                    <h3>Output Resolution</h3>
+                    <p class="subtitle">Crop or resize frames to match your LED strip dimensions</p>
+                </div>
+
+                <div class="config-grid">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="sequenceUseCustomResolution" class="checkbox">
+                        <label for="sequenceUseCustomResolution">Use custom output resolution</label>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sequenceOutputWidth">Output Width</label>
+                        <input type="number" id="sequenceOutputWidth" class="text-field" min="1" max="1024" value="64" disabled>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sequenceOutputHeight">Output Height</label>
+                        <input type="number" id="sequenceOutputHeight" class="text-field" min="1" max="1024" value="1" disabled>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sequenceCropMode">Resize Mode</label>
+                        <select id="sequenceCropMode" class="select-field" disabled>
+                            <option value="crop-top">Crop from top</option>
+                            <option value="crop-bottom">Crop from bottom</option>
+                            <option value="crop-center">Crop center</option>
+                            <option value="stretch">Stretch to fit</option>
+                            <option value="fit">Fit (maintain aspect)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="export-options">
+                    <button class="button primary" id="sequenceExportTwincatBtn">
+                        <span class="material-icons">code</span>
+                        Export TwinCAT Code
+                    </button>
+                    <button class="button secondary" id="sequenceExportJsonBtn">
+                        <span class="material-icons">data_object</span>
+                        Export JSON
+                    </button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Hidden canvas for processing -->
+    <canvas id="processingCanvas" style="display: none;"></canvas>
+
+    <!-- Snackbar for notifications -->
+    <div class="snackbar" id="snackbar">
+        <span class="material-icons">check_circle</span>
+        <span>Message</span>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/imageProcessor.js"></script>
+    <script src="js/frameManager.js"></script>
+    <script src="js/animationExporter.js"></script>
+    <script src="js/singleImageHandler.js"></script>
+    <script src="js/sequenceHandler.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFXfont to PixelFont</title>
+    <style>
+        .contenteditable {
+            border: 2px solid #ccc;
+            height: calc(100vh - 190px); /* Adjust 100px based on other elements' heights */
+            width: calc(100vw - 30px);
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>GFXfont to PixelFont</h1>
+    <a href="https://github.com/adafruit/Adafruit-GFX-Library/tree/master/Fonts">Example Fonts</a>
+    <br>
+    <a href="https://tchapi.github.io/Adafruit-GFX-Font-Customiser/">Font Editor</a>
+    <br><br>
+    <button onclick="convert()">Convert</button>
+    <br>
+    <textarea class="contenteditable" id="textbox" placeholder="Enter your font here"></textarea>
+
+
+
+
+    <script>
+        function convert()
+        {
+            let STOutput, name;
+            [STOutput, name] = parseConstants(document.getElementById('textbox').value);
+            downloadPixelArray(STOutput, name);
+        }
+
+        function replaceSpecialCharsWithUnderscore(input) {
+            const specialCharsRegex = /[^a-zA-Z0-9]/g;
+            return input.replace(specialCharsRegex, '_');
+        }
+        function parseConstants(text) {
+            // Extract hex values
+            const arrayPattern = text.match(/const uint8_t.+?PROGMEM\s*=\s*\{([^}]+)\}/s);
+            const hexValues = arrayPattern[1].match(/0x[0-9A-Fa-f]{1,2}/g);
+            const newLineOffsetMatch = text.match(/const GFXfont.+?PROGMEM\s*=\s*\{.*?0x[0-9A-Fa-f]{2}.*?0x[0-9A-Fa-f]{2}.*?([0-9]+)/s);
+            const newLineOffset = newLineOffsetMatch ? newLineOffsetMatch[1] : null;
+            const charsMatch = text.match(/const GFXfont.+?PROGMEM\s*=\s*\{.*?(0x[0-9A-Fa-f]{2}).*?(0x[0-9A-Fa-f]{2})/s);
+            const fontNameMatch = text.match(/const GFXfont\s(.+?)\sPROGMEM/s);
+            const fontName = fontNameMatch ? fontNameMatch[1] : null;
+            const startChar = charsMatch ? charsMatch[1] : null;
+            const endChar = charsMatch ? charsMatch[2] : null;
+
+            // Extract tuples
+            const tuples = [];
+            const matches = text.match(/{[^}{]+}[^;]/g);
+
+            let maxBaseLine = 0;
+
+            // Iterate over each match found
+            matches.forEach(match => {
+                // Find all numbers within the match and convert them to integers
+                const numbers = match.match(/-?\d+/g);
+                const integerTuple = numbers.map(Number);
+
+                if (Math.abs(integerTuple[5]) > maxBaseLine) {
+                    maxBaseLine = Math.abs(integerTuple[5]);
+                }
+
+                // Append the tuple to the list
+                tuples.push(integerTuple);
+            });
+
+            const formattedHexValues = hexValues.map(hexValue => `16#${hexValue.slice(2).toUpperCase()}`);
+            const result = `StartChar 			: BYTE := 16#${startChar.slice(2).toUpperCase()};
+EndChar 			: BYTE := 16#${endChar.slice(2).toUpperCase()};
+NewLineOffset 		: USINT := ${newLineOffset};
+MaxBaseLine 		: INT := ${maxBaseLine};
+Bitmaps             : ARRAY[0..${hexValues.length}] OF BYTE := [${formattedHexValues.join(", ")}];
+glyphs              : ARRAY[0..${tuples.length}] OF ARRAY[0..5] OF INT := [${tuples.map(t => `[${t.join(", ")}]`).join(", ")}];`
+            return [result,fontName];
+        }
+
+        function downloadPixelArray(pixelArray, name) {
+            const blob = new Blob([pixelArray], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name}.txt`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>

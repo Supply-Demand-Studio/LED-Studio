@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Pixel Array</title>
+</head>
+
+<body>
+    <h1>Image to Pixel Array</h1>
+    <a href="https://www.piskelapp.com/p/create/sprite">Pixel Image Editor</a>
+    <br><br>
+    <input type="file" id="fileInput" accept="image/*" multiple>
+    <canvas style="display: none;" width="0px" height="0px" id="canvas"></canvas>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFileInputChange);
+
+        function handleFileInputChange(event) {
+            const files = event.target.files;
+            Array.from(files).forEach(file => {
+                const name = replaceSpecialCharsWithUnderscore(file.name.substring(0, file.name.lastIndexOf('.')));
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const img = new Image();
+                        img.onload = () => processImage(img, name);
+                        img.onerror = () => console.error("Failed to load the image.");
+                        img.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function replaceSpecialCharsWithUnderscore(input) {
+            const specialCharsRegex = /[^a-zA-Z0-9]/g;
+            return input.replace(specialCharsRegex, '_');
+        }
+
+        function processImage(img, name) {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+
+            setCanvasDimensions(canvas, img);
+            context.drawImage(img, 0, 0);
+
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const pixelArray = convertImageDataToPixelArray(imageData, name);
+
+            downloadPixelArray(pixelArray, name);
+        }
+
+        function setCanvasDimensions(canvas, img) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+        }
+
+        function convertImageDataToPixelArray(imageData, name) {
+            const data = imageData.data;
+            let outputFile = `nWidth_${name} : INT := ${imageData.width};\n`;
+            outputFile += `nHeight_${name} : INT := ${imageData.height};\n\n`;
+            outputFile += `aArray_${name} : ARRAY[0..${(imageData.width * imageData.height) - 1}] OF DWORD := [\n`;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const hexPixel = convertToHexPixel(data[i], data[i + 1], data[i + 2]);
+                outputFile += `16#${hexPixel.toString(16).padStart(8, '0')}, `;
+
+                if ((Math.floor(i / 4) + 1) % imageData.width === 0) {
+                    outputFile += "\n";
+                }
+            }
+
+            // Trim the trailing comma and space, add closing bracket
+            return outputFile.trimEnd().slice(0, -1) + "];";
+        }
+
+        function convertToHexPixel(r, g, b) {
+            const w = 0; // Alpha channel treated as WW component
+            return (w << 24) | (b << 16) | (g << 8) | r;
+        }
+
+        function downloadPixelArray(pixelArray, name) {
+            const blob = new Blob([pixelArray], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name}.txt`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
