@@ -110,6 +110,87 @@ class AnimationExporter {
     }
 
     /**
+     * Export animation as TwinCAT Global Variable List (.TcGVL) - RECOMMENDED
+     * This format can be added directly to your TwinCAT project
+     */
+    exportTcGVL(frames, options) {
+        const { name, brightness, fps, width, height } = options;
+        const guid = this.generateGUID();
+        const gvlName = `GVL_Anim_${name}`;
+        
+        let output = '';
+        
+        // XML header
+        output += `<?xml version="1.0" encoding="utf-8"?>\n`;
+        output += `<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">\n`;
+        output += `  <GVL Name="${gvlName}" Id="${guid}">\n`;
+        output += `    <Declaration><![CDATA[{attribute 'qualified_only'}\n`;
+        output += `VAR_GLOBAL CONSTANT\n`;
+        
+        // Metadata constants
+        output += `    // Animation metadata\n`;
+        output += `    nFrameCount_${name} : INT := ${frames.length};\n`;
+        output += `    nWidth_${name} : INT := ${width};\n`;
+        output += `    nHeight_${name} : INT := ${height};\n`;
+        output += `    nFPS_${name} : INT := ${fps};\n`;
+        output += `    nPixelsPerFrame_${name} : INT := ${width * height};\n\n`;
+        
+        // Frame data arrays
+        for (let i = 0; i < frames.length; i++) {
+            const frame = frames[i];
+            const pixels = this.imageProcessor.applyBrightness(frame.pixelData, brightness);
+            
+            output += `    aFrame_${name}_${i.toString().padStart(3, '0')} : ARRAY[0..${pixels.length - 1}] OF DWORD := [\n`;
+            
+            for (let j = 0; j < pixels.length; j++) {
+                output += `        16#${pixels[j].dword.toString(16).padStart(8, '0').toUpperCase()}`;
+                
+                if (j < pixels.length - 1) {
+                    output += ',';
+                }
+                
+                // Line break every 4 pixels for readability
+                if ((j + 1) % 4 === 0 && j < pixels.length - 1) {
+                    output += '\n';
+                }
+            }
+            
+            output += `\n    ];\n\n`;
+        }
+
+        // Frame pointer array
+        output += `    // Frame pointer array for playback\n`;
+        output += `    aFramePointers_${name} : ARRAY[0..${frames.length - 1}] OF POINTER TO ARRAY[0..${width * height - 1}] OF DWORD := [\n`;
+        
+        for (let i = 0; i < frames.length; i++) {
+            output += `        ADR(aFrame_${name}_${i.toString().padStart(3, '0')})`;
+            
+            if (i < frames.length - 1) {
+                output += ',';
+            }
+            output += '\n';
+        }
+        
+        output += `    ];\n`;
+        output += `END_VAR]]></Declaration>\n`;
+        output += `  </GVL>\n`;
+        output += `</TcPlcObject>\n`;
+
+        return output;
+    }
+
+    /**
+     * Generate a GUID for TwinCAT objects
+     */
+    generateGUID() {
+        return '{xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx}'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    /**
      * Export animation as JSON (for debugging or external tools)
      */
     exportJSON(frames, options) {

@@ -49,6 +49,7 @@ class SequenceHandler {
         this.playBtn = document.getElementById('sequencePlayBtn');
         this.prevFrameBtn = document.getElementById('sequencePrevFrameBtn');
         this.nextFrameBtn = document.getElementById('sequenceNextFrameBtn');
+        this.exportGvlBtn = document.getElementById('sequenceExportGvlBtn');
         this.exportTwincatBtn = document.getElementById('sequenceExportTwincatBtn');
         this.exportJsonBtn = document.getElementById('sequenceExportJsonBtn');
         
@@ -205,6 +206,10 @@ class SequenceHandler {
         });
 
         // Export buttons
+        this.exportGvlBtn.addEventListener('click', () => {
+            this.exportTcGVL();
+        });
+
         this.exportTwincatBtn.addEventListener('click', () => {
             this.exportTwinCAT();
         });
@@ -569,6 +574,27 @@ class SequenceHandler {
         const fps = parseInt(this.fpsSlider.value);
         const duration = (this.frames.length / fps).toFixed(2);
         this.durationInfo.textContent = `${duration}s @ ${fps} fps`;
+    }
+
+    /**
+     * Export as TcGVL (TwinCAT Global Variable List) - RECOMMENDED
+     */
+    exportTcGVL() {
+        const name = this.animationNameInput.value || 'MY_ANIMATION';
+        const brightness = parseInt(this.brightnessSlider.value);
+        const fps = parseInt(this.fpsSlider.value);
+        const dimensions = this.getOutputDimensions();
+
+        const gvl = this.animationExporter.exportTcGVL(this.frames, {
+            name,
+            brightness,
+            fps,
+            width: dimensions.width,
+            height: dimensions.height
+        });
+
+        this.downloadFile(gvl, `GVL_Anim_${name}.TcGVL`);
+        window.showSnackbar('TcGVL exported - Add to your TwinCAT project!');
     }
 
     /**
