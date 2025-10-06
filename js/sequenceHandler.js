@@ -434,61 +434,30 @@ class SequenceHandler {
         cropX = Math.max(0, Math.min(cropX, this.frameWidth - cropW));
         cropY = Math.max(0, Math.min(cropY, this.frameHeight - cropH));
 
-        // Draw subtle crop indicators - just thin lines at boundaries
-        ctx.strokeStyle = '#00ff00'; // Green for visibility without being overwhelming
-        ctx.lineWidth = 1;
+        // Draw semi-transparent overlay on areas that will NOT be exported
+        // The crop region remains fully visible (100% opacity)
+        // Everything else gets darkened (semi-transparent black overlay)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         
-        // Draw horizontal lines (top and bottom of crop area)
-        if (cropY > 0 || cropY < this.frameHeight - cropH) {
-            ctx.setLineDash([4, 4]); // Dashed line
-            
-            // Top boundary
-            ctx.beginPath();
-            ctx.moveTo(0, cropY);
-            ctx.lineTo(this.frameWidth, cropY);
-            ctx.stroke();
-            
-            // Bottom boundary
-            ctx.beginPath();
-            ctx.moveTo(0, cropY + cropH);
-            ctx.lineTo(this.frameWidth, cropY + cropH);
-            ctx.stroke();
-            
-            ctx.setLineDash([]); // Reset to solid
+        // Top area (above crop)
+        if (cropY > 0) {
+            ctx.fillRect(0, 0, this.frameWidth, cropY);
         }
-
-        // Draw small corner markers at the crop region
-        const markerSize = 8;
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 2;
         
-        // Top-left corner
-        ctx.beginPath();
-        ctx.moveTo(cropX, cropY + markerSize);
-        ctx.lineTo(cropX, cropY);
-        ctx.lineTo(cropX + markerSize, cropY);
-        ctx.stroke();
+        // Bottom area (below crop)
+        if (cropY + cropH < this.frameHeight) {
+            ctx.fillRect(0, cropY + cropH, this.frameWidth, this.frameHeight - (cropY + cropH));
+        }
         
-        // Top-right corner
-        ctx.beginPath();
-        ctx.moveTo(cropX + cropW - markerSize, cropY);
-        ctx.lineTo(cropX + cropW, cropY);
-        ctx.lineTo(cropX + cropW, cropY + markerSize);
-        ctx.stroke();
+        // Left area (beside crop)
+        if (cropX > 0) {
+            ctx.fillRect(0, cropY, cropX, cropH);
+        }
         
-        // Bottom-left corner
-        ctx.beginPath();
-        ctx.moveTo(cropX, cropY + cropH - markerSize);
-        ctx.lineTo(cropX, cropY + cropH);
-        ctx.lineTo(cropX + markerSize, cropY + cropH);
-        ctx.stroke();
-        
-        // Bottom-right corner
-        ctx.beginPath();
-        ctx.moveTo(cropX + cropW - markerSize, cropY + cropH);
-        ctx.lineTo(cropX + cropW, cropY + cropH);
-        ctx.lineTo(cropX + cropW, cropY + cropH - markerSize);
-        ctx.stroke();
+        // Right area (beside crop)
+        if (cropX + cropW < this.frameWidth) {
+            ctx.fillRect(cropX + cropW, cropY, this.frameWidth - (cropX + cropW), cropH);
+        }
     }
 
     /**
