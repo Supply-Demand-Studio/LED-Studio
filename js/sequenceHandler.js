@@ -40,10 +40,8 @@ class SequenceHandler {
         this.outputWidth = document.getElementById('sequenceOutputWidth');
         this.outputHeight = document.getElementById('sequenceOutputHeight');
         this.cropMode = document.getElementById('sequenceCropMode');
-        this.cropOffsetXSlider = document.getElementById('sequenceCropOffsetX');
-        this.cropOffsetXValue = document.getElementById('sequenceCropOffsetXValue');
-        this.cropOffsetYSlider = document.getElementById('sequenceCropOffsetY');
-        this.cropOffsetYValue = document.getElementById('sequenceCropOffsetYValue');
+        this.cropOffsetXInput = document.getElementById('sequenceCropOffsetX');
+        this.cropOffsetYInput = document.getElementById('sequenceCropOffsetY');
         
         // Control buttons
         this.playBtn = document.getElementById('sequencePlayBtn');
@@ -121,8 +119,8 @@ class SequenceHandler {
             this.outputWidth.disabled = !enabled;
             this.outputHeight.disabled = !enabled;
             this.cropMode.disabled = !enabled;
-            this.cropOffsetXSlider.disabled = !enabled;
-            this.cropOffsetYSlider.disabled = !enabled;
+            this.cropOffsetXInput.disabled = !enabled;
+            this.cropOffsetYInput.disabled = !enabled;
             
             if (enabled && this.frames.length > 0) {
                 // Set default to source dimensions
@@ -131,10 +129,8 @@ class SequenceHandler {
                 // Reset crop offsets
                 this.cropOffsetX = 0;
                 this.cropOffsetY = 0;
-                this.cropOffsetXSlider.value = 0;
-                this.cropOffsetYSlider.value = 0;
-                this.cropOffsetXValue.textContent = '0';
-                this.cropOffsetYValue.textContent = '0';
+                this.cropOffsetXInput.value = 0;
+                this.cropOffsetYInput.value = 0;
                 // Update preview to show crop overlay
                 this.updatePreview(this.frameManager.getCurrentFrame());
             }
@@ -158,39 +154,36 @@ class SequenceHandler {
                 // Reset offsets when changing mode
                 this.cropOffsetX = 0;
                 this.cropOffsetY = 0;
-                this.cropOffsetXSlider.value = 0;
-                this.cropOffsetYSlider.value = 0;
-                this.cropOffsetXValue.textContent = '0';
-                this.cropOffsetYValue.textContent = '0';
+                this.cropOffsetXInput.value = 0;
+                this.cropOffsetYInput.value = 0;
                 this.reprocessFrames();
             }
         });
 
-        // Crop offset sliders - update preview in real-time
-        this.cropOffsetXSlider.addEventListener('input', (e) => {
-            this.cropOffsetX = parseInt(e.target.value);
-            this.cropOffsetXValue.textContent = this.cropOffsetX;
+        // Crop offset inputs - update preview and reprocess on change
+        this.cropOffsetXInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value) || 0;
+            this.cropOffsetX = value;
             if (this.frames.length > 0) {
                 this.updatePreview(this.frameManager.getCurrentFrame());
             }
         });
 
-        this.cropOffsetYSlider.addEventListener('input', (e) => {
-            this.cropOffsetY = parseInt(e.target.value);
-            this.cropOffsetYValue.textContent = this.cropOffsetY;
-            if (this.frames.length > 0) {
-                this.updatePreview(this.frameManager.getCurrentFrame());
-            }
-        });
-
-        // When offset slider is released, reprocess frames for export
-        this.cropOffsetXSlider.addEventListener('change', () => {
+        this.cropOffsetXInput.addEventListener('change', () => {
             if (this.useCustomResolution.checked && this.frames.length > 0) {
                 this.reprocessFrames();
             }
         });
 
-        this.cropOffsetYSlider.addEventListener('change', () => {
+        this.cropOffsetYInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value) || 0;
+            this.cropOffsetY = value;
+            if (this.frames.length > 0) {
+                this.updatePreview(this.frameManager.getCurrentFrame());
+            }
+        });
+
+        this.cropOffsetYInput.addEventListener('change', () => {
             if (this.useCustomResolution.checked && this.frames.length > 0) {
                 this.reprocessFrames();
             }
@@ -441,46 +434,61 @@ class SequenceHandler {
         cropX = Math.max(0, Math.min(cropX, this.frameWidth - cropW));
         cropY = Math.max(0, Math.min(cropY, this.frameHeight - cropH));
 
-        // Dim the area outside crop region
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        // Draw subtle crop indicators - just thin lines at boundaries
+        ctx.strokeStyle = '#00ff00'; // Green for visibility without being overwhelming
+        ctx.lineWidth = 1;
         
-        // Top
-        if (cropY > 0) {
-            ctx.fillRect(0, 0, this.frameWidth, cropY);
-        }
-        // Bottom
-        if (cropY + cropH < this.frameHeight) {
-            ctx.fillRect(0, cropY + cropH, this.frameWidth, this.frameHeight - (cropY + cropH));
-        }
-        // Left
-        if (cropX > 0) {
-            ctx.fillRect(0, cropY, cropX, cropH);
-        }
-        // Right
-        if (cropX + cropW < this.frameWidth) {
-            ctx.fillRect(cropX + cropW, cropY, this.frameWidth - (cropX + cropW), cropH);
+        // Draw horizontal lines (top and bottom of crop area)
+        if (cropY > 0 || cropY < this.frameHeight - cropH) {
+            ctx.setLineDash([4, 4]); // Dashed line
+            
+            // Top boundary
+            ctx.beginPath();
+            ctx.moveTo(0, cropY);
+            ctx.lineTo(this.frameWidth, cropY);
+            ctx.stroke();
+            
+            // Bottom boundary
+            ctx.beginPath();
+            ctx.moveTo(0, cropY + cropH);
+            ctx.lineTo(this.frameWidth, cropY + cropH);
+            ctx.stroke();
+            
+            ctx.setLineDash([]); // Reset to solid
         }
 
-        // Draw red crop rectangle
-        ctx.strokeStyle = '#ff0000';
+        // Draw small corner markers at the crop region
+        const markerSize = 8;
+        ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = 2;
-        ctx.strokeRect(cropX, cropY, cropW, cropH);
-
-        // Draw corner markers
-        const markerSize = 10;
-        ctx.fillStyle = '#ff0000';
-        // Top-left
-        ctx.fillRect(cropX - 1, cropY - 1, markerSize, 2);
-        ctx.fillRect(cropX - 1, cropY - 1, 2, markerSize);
-        // Top-right
-        ctx.fillRect(cropX + cropW - markerSize + 1, cropY - 1, markerSize, 2);
-        ctx.fillRect(cropX + cropW - 1, cropY - 1, 2, markerSize);
-        // Bottom-left
-        ctx.fillRect(cropX - 1, cropY + cropH - 1, markerSize, 2);
-        ctx.fillRect(cropX - 1, cropY + cropH - markerSize + 1, 2, markerSize);
-        // Bottom-right
-        ctx.fillRect(cropX + cropW - markerSize + 1, cropY + cropH - 1, markerSize, 2);
-        ctx.fillRect(cropX + cropW - 1, cropY + cropH - markerSize + 1, 2, markerSize);
+        
+        // Top-left corner
+        ctx.beginPath();
+        ctx.moveTo(cropX, cropY + markerSize);
+        ctx.lineTo(cropX, cropY);
+        ctx.lineTo(cropX + markerSize, cropY);
+        ctx.stroke();
+        
+        // Top-right corner
+        ctx.beginPath();
+        ctx.moveTo(cropX + cropW - markerSize, cropY);
+        ctx.lineTo(cropX + cropW, cropY);
+        ctx.lineTo(cropX + cropW, cropY + markerSize);
+        ctx.stroke();
+        
+        // Bottom-left corner
+        ctx.beginPath();
+        ctx.moveTo(cropX, cropY + cropH - markerSize);
+        ctx.lineTo(cropX, cropY + cropH);
+        ctx.lineTo(cropX + markerSize, cropY + cropH);
+        ctx.stroke();
+        
+        // Bottom-right corner
+        ctx.beginPath();
+        ctx.moveTo(cropX + cropW - markerSize, cropY + cropH);
+        ctx.lineTo(cropX + cropW, cropY + cropH);
+        ctx.lineTo(cropX + cropW, cropY + cropH - markerSize);
+        ctx.stroke();
     }
 
     /**
