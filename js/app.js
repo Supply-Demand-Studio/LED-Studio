@@ -64,6 +64,7 @@ class LEDAnimationConverter {
             // Initialize UI
             this.initializeTabNavigation();
             this.initializeThemeToggle();
+            this.initializeClearCache();
             
             this.initialized = true;
             console.log('LED Animation Converter initialized successfully');
@@ -140,6 +141,47 @@ class LEDAnimationConverter {
         
         root.setAttribute('data-theme', theme);
         icon.textContent = theme === 'light' ? 'dark_mode' : 'light_mode';
+    }
+
+    /**
+     * Initialize clear cache button
+     */
+    initializeClearCache() {
+        const clearCacheBtn = document.getElementById('clearCacheBtn');
+        
+        clearCacheBtn.addEventListener('click', async () => {
+            try {
+                // Clear all caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    console.log('All caches cleared:', cacheNames);
+                }
+                
+                // Clear localStorage (preserve theme preference)
+                const savedTheme = localStorage.getItem('theme');
+                localStorage.clear();
+                if (savedTheme) {
+                    localStorage.setItem('theme', savedTheme);
+                }
+                
+                // Show feedback
+                window.showSnackbar('Cache cleared! Reloading page...', 'success');
+                
+                // Force hard reload after a short delay
+                setTimeout(() => {
+                    // Use location.reload(true) to force reload from server, bypassing cache
+                    window.location.reload(true);
+                }, 800);
+                
+            } catch (error) {
+                console.error('Error clearing cache:', error);
+                window.showSnackbar('Cache cleared. Reloading...', 'success');
+                setTimeout(() => {
+                    window.location.reload(true);
+                }, 800);
+            }
+        });
     }
 }
 
