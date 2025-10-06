@@ -7,7 +7,8 @@
 window.showSnackbar = function(message, type = 'success') {
     const snackbar = document.getElementById('snackbar');
     const icon = snackbar.querySelector('.material-icons');
-    const text = snackbar.querySelector('span');
+    const spans = snackbar.querySelectorAll('span');
+    const text = spans[1]; // Second span is the text
     
     // Set icon and text
     if (type === 'error') {

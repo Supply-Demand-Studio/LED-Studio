@@ -6,6 +6,8 @@ class SingleImageHandler {
         this.imageProcessor = imageProcessor;
         this.currentImage = null;
         this.currentPixelData = null;
+        this.zoomLevel = 1;
+        this.fitToFrame = false;
         
         this.initializeElements();
         this.initializeEventListeners();
@@ -15,6 +17,7 @@ class SingleImageHandler {
         this.dropZone = document.getElementById('singleDropZone');
         this.fileInput = document.getElementById('singleFileInput');
         this.previewSection = document.getElementById('singlePreviewSection');
+        this.previewContainer = document.getElementById('singlePreviewContainer');
         this.previewCanvas = document.getElementById('singlePreviewCanvas');
         this.imageNameInput = document.getElementById('singleImageName');
         this.brightnessSlider = document.getElementById('singleBrightness');
@@ -22,6 +25,13 @@ class SingleImageHandler {
         this.dimensionInfo = document.getElementById('singleDimensionInfo');
         this.pixelCount = document.getElementById('singlePixelCount');
         this.exportBtn = document.getElementById('singleExportBtn');
+        
+        // Zoom controls
+        this.zoomInBtn = document.getElementById('singleZoomIn');
+        this.zoomOutBtn = document.getElementById('singleZoomOut');
+        this.zoomFitBtn = document.getElementById('singleZoomFit');
+        this.zoomActualBtn = document.getElementById('singleZoomActual');
+        this.zoomLevelDisplay = document.getElementById('singleZoomLevel');
     }
 
     initializeEventListeners() {
@@ -70,6 +80,23 @@ class SingleImageHandler {
         // Export button
         this.exportBtn.addEventListener('click', () => {
             this.exportTwinCAT();
+        });
+
+        // Zoom controls
+        this.zoomInBtn.addEventListener('click', () => {
+            this.setZoom(this.zoomLevel * 2);
+        });
+
+        this.zoomOutBtn.addEventListener('click', () => {
+            this.setZoom(this.zoomLevel / 2);
+        });
+
+        this.zoomFitBtn.addEventListener('click', () => {
+            this.fitToContainer();
+        });
+
+        this.zoomActualBtn.addEventListener('click', () => {
+            this.setZoom(1);
         });
     }
 
@@ -142,6 +169,58 @@ class SingleImageHandler {
         const pixelCount = this.currentImage.width * this.currentImage.height;
         this.dimensionInfo.textContent = `${this.currentImage.width} x ${this.currentImage.height}`;
         this.pixelCount.textContent = `${pixelCount} pixels`;
+
+        // Auto-fit small images
+        if (this.currentImage.width < 100 || this.currentImage.height < 100) {
+            this.fitToContainer();
+        } else {
+            this.setZoom(1);
+        }
+    }
+
+    /**
+     * Set zoom level
+     */
+    setZoom(level) {
+        this.zoomLevel = Math.max(0.1, Math.min(32, level));
+        this.fitToFrame = false;
+        this.applyZoom();
+    }
+
+    /**
+     * Fit image to container
+     */
+    fitToContainer() {
+        if (!this.currentImage) return;
+
+        const containerWidth = this.previewContainer.clientWidth - 48; // padding
+        const containerHeight = this.previewContainer.clientHeight - 48;
+
+        const scaleX = containerWidth / this.currentImage.width;
+        const scaleY = containerHeight / this.currentImage.height;
+        this.zoomLevel = Math.min(scaleX, scaleY, 32); // Cap at 32x
+        this.fitToFrame = true;
+        this.applyZoom();
+    }
+
+    /**
+     * Apply current zoom level to canvas
+     */
+    applyZoom() {
+        if (!this.currentImage) return;
+
+        const width = this.currentImage.width * this.zoomLevel;
+        const height = this.currentImage.height * this.zoomLevel;
+
+        this.previewCanvas.style.width = `${width}px`;
+        this.previewCanvas.style.height = `${height}px`;
+
+        // Update zoom display
+        if (this.fitToFrame) {
+            this.zoomLevelDisplay.textContent = `${Math.round(this.zoomLevel * 100)}% (Fit)`;
+        } else {
+            this.zoomLevelDisplay.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+        }
     }
 
     /**

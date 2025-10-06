@@ -8,6 +8,8 @@ class SequenceHandler {
         this.animationExporter = animationExporter;
         
         this.frames = [];
+        this.zoomLevel = 1;
+        this.fitToFrame = false;
         
         this.initializeElements();
         this.initializeEventListeners();
@@ -18,6 +20,7 @@ class SequenceHandler {
         this.fileInput = document.getElementById('sequenceFileInput');
         this.fileList = document.getElementById('sequenceFileList');
         this.previewSection = document.getElementById('sequencePreviewSection');
+        this.previewContainer = document.getElementById('sequencePreviewContainer');
         this.previewCanvas = document.getElementById('sequencePreviewCanvas');
         this.timeline = document.getElementById('sequenceTimeline');
         this.animationNameInput = document.getElementById('sequenceAnimationName');
@@ -42,6 +45,13 @@ class SequenceHandler {
         this.nextFrameBtn = document.getElementById('sequenceNextFrameBtn');
         this.exportTwincatBtn = document.getElementById('sequenceExportTwincatBtn');
         this.exportJsonBtn = document.getElementById('sequenceExportJsonBtn');
+        
+        // Zoom controls
+        this.zoomInBtn = document.getElementById('sequenceZoomIn');
+        this.zoomOutBtn = document.getElementById('sequenceZoomOut');
+        this.zoomFitBtn = document.getElementById('sequenceZoomFit');
+        this.zoomActualBtn = document.getElementById('sequenceZoomActual');
+        this.zoomLevelDisplay = document.getElementById('sequenceZoomLevel');
     }
 
     initializeEventListeners() {
@@ -154,6 +164,23 @@ class SequenceHandler {
             this.exportJSON();
         });
 
+        // Zoom controls
+        this.zoomInBtn.addEventListener('click', () => {
+            this.setZoom(this.zoomLevel * 2);
+        });
+
+        this.zoomOutBtn.addEventListener('click', () => {
+            this.setZoom(this.zoomLevel / 2);
+        });
+
+        this.zoomFitBtn.addEventListener('click', () => {
+            this.fitToContainer();
+        });
+
+        this.zoomActualBtn.addEventListener('click', () => {
+            this.setZoom(1);
+        });
+
         // Frame manager events
         this.frameManager.on('frameChange', (frameIndex) => {
             this.updatePreview(frameIndex);
@@ -226,6 +253,13 @@ class SequenceHandler {
 
             // Show preview section
             this.previewSection.style.display = 'block';
+
+            // Auto-fit small images (like 4x64 from After Effects)
+            if (this.frameWidth < 100 || this.frameHeight < 100) {
+                this.fitToContainer();
+            } else {
+                this.setZoom(1);
+            }
 
             window.showSnackbar(`Loaded ${files.length} frames successfully`);
         } catch (error) {
@@ -303,6 +337,54 @@ class SequenceHandler {
         ctx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(frame.image, 0, 0);
+
+        // Apply current zoom
+        this.applyZoom();
+    }
+
+    /**
+     * Set zoom level
+     */
+    setZoom(level) {
+        this.zoomLevel = Math.max(0.1, Math.min(32, level));
+        this.fitToFrame = false;
+        this.applyZoom();
+    }
+
+    /**
+     * Fit image to container
+     */
+    fitToContainer() {
+        if (this.frames.length === 0) return;
+
+        const containerWidth = this.previewContainer.clientWidth - 48; // padding
+        const containerHeight = this.previewContainer.clientHeight - 48;
+
+        const scaleX = containerWidth / this.frameWidth;
+        const scaleY = containerHeight / this.frameHeight;
+        this.zoomLevel = Math.min(scaleX, scaleY, 32); // Cap at 32x
+        this.fitToFrame = true;
+        this.applyZoom();
+    }
+
+    /**
+     * Apply current zoom level to canvas
+     */
+    applyZoom() {
+        if (this.frames.length === 0) return;
+
+        const width = this.frameWidth * this.zoomLevel;
+        const height = this.frameHeight * this.zoomLevel;
+
+        this.previewCanvas.style.width = `${width}px`;
+        this.previewCanvas.style.height = `${height}px`;
+
+        // Update zoom display
+        if (this.fitToFrame) {
+            this.zoomLevelDisplay.textContent = `${Math.round(this.zoomLevel * 100)}% (Fit)`;
+        } else {
+            this.zoomLevelDisplay.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+        }
     }
 
     /**
@@ -317,7 +399,9 @@ class SequenceHandler {
         // Scroll timeline to show active frame
         const activeFrame = allFrames[frameIndex];
         if (activeFrame) {
-            activeFrame.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            // Use instant scroll during playback, smooth when manually navigating
+            const behavior = this.frameManager.isPlaying() ? 'instant' : 'smooth';
+            activeFrame.scrollIntoView({ behavior: behavior, block: 'nearest', inline: 'center' });
         }
     }
 
