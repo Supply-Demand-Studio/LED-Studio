@@ -198,4 +198,4 @@ console.log('%cSupports single images and PNG sequences for TwinCAT LED animatio
 console.log('%cKeyboard shortcuts:', 'font-weight: bold; margin-top: 8px;');
 console.log('  Space: Toggle playback (sequence mode)');
 console.log('  Arrow Left/Right: Navigate frames (sequence mode)');
-console.log('%c🌐 https://supply-demand-studio.github.io/SAND-LED-Studio/', 'color: #1976D2; margin-top: 8px;');
+console.log('%c🌐 https://supply-demand-studio.github.io/LED-Studio/', 'color: #1976D2; margin-top: 8px;');

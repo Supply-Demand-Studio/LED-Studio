@@ -2,7 +2,7 @@
 
 A web-based tool for converting images and PNG sequences into TwinCAT-compatible pixel arrays for LED matrix control.
 
-**🌐 Live Tool:** https://supply-demand-studio.github.io/SAND-LED-Studio/
+**🌐 Live Tool:** https://supply-demand-studio.github.io/LED-Studio/
 
 **📦 Part of the SAND_Common ecosystem:** [BECKHOFF_PLC_COMMON](https://github.com/Supply-Demand-Studio/BECKHOFF_PLC_COMMON)
 
